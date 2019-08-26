@@ -2214,6 +2214,7 @@ def sync_web3(request):
     issue_url = request.POST.get('url')
     txid = request.POST.get('txid')
     network = request.POST.get('network')
+    contract_versions = ['2', ''] # TODO: CHECK ['2', '1']
 
     if issue_url and txid and network:
         # confirm txid has mined
@@ -2227,7 +2228,10 @@ def sync_web3(request):
 
             # get bounty id
             print('* getting bounty id')
-            bounty_id = get_bounty_id(issue_url, network)
+            for contract_version in contract_versions:
+                bounty_id = get_bounty_id(issue_url, network, contract_version)
+                if bounty_id:
+                    break
             if not bounty_id:
                 result = {
                     'status': '400',
@@ -2236,7 +2240,13 @@ def sync_web3(request):
             else:
                 # get/process bounty
                 print('* getting bounty')
-                bounty = get_bounty(bounty_id, network)
+
+                bounty = None
+                for contract_version in contract_versions:
+                    bounty = get_bounty(bounty_id, network, contract_version)
+                    if bounty:
+                        break
+
                 print('* processing bounty')
                 did_change = False
                 max_tries_attempted = False
