@@ -10,9 +10,9 @@ let params = (new URL(document.location)).searchParams;
 
 const FEE_PERCENTAGE = document.FEE_PERCENTAGE / 100.0;
 
-var new_bounty = {
-  last_sync: new Date()
-};
+const contract_version = 2;
+
+var bounty_last_synced = new Date();
 
 if (localStorage['quickstart_dontshow'] !== 'true' &&
     doShowQuickstart(document.referrer) &&
@@ -201,7 +201,7 @@ const handleTokenAuth = () => {
     } else {
       const token_contract = web3.eth.contract(token_abi).at(tokenAddress);
       const from = web3.eth.coinbase;
-      const to = bounty_address();
+      const to = bounty_address(contract_version);
 
       token_contract.allowance.call(from, to, (error, result) => {
 
@@ -402,9 +402,9 @@ $('#reservedFor').on('select2:select', function(e) {
 $('#sync-issue').on('click', function(event) {
   event.preventDefault();
   if (!$('#sync-issue').hasClass('disabled')) {
-    new_bounty.last_sync = new Date();
+    bounty_last_synced = new Date();
     retrieveIssueDetails();
-    $('#last-synced span').html(lastSynced(new Date(), new_bounty.last_sync));
+    $('#last-synced span').html(lastSynced(new Date(), bounty_last_synced));
   }
 });
 
@@ -422,7 +422,7 @@ $('#issueURL').focusout(function() {
   }
 
   setInterval(function() {
-    $('#last-synced span').html(timeDifference(new Date(), new_bounty.last_sync));
+    $('#last-synced span').html(timeDifference(new Date(), bounty_last_synced));
   }, 6000);
 
   if ($('input[name=issueURL]').val() == '' || !validURL($('input[name=issueURL]').val())) {
@@ -440,10 +440,10 @@ $('#issueURL').focusout(function() {
     $('#sync-issue').removeClass('disabled');
     $('.js-submit').removeClass('disabled');
 
-    new_bounty.last_sync = new Date();
+    bounty_last_synced = new Date();
     retrieveIssueDetails();
     $('#last-synced').show();
-    $('#last-synced span').html(lastSynced(new Date(), new_bounty.last_sync));
+    $('#last-synced span').html(lastSynced(new Date(), bounty_last_synced));
   }
 });
 
@@ -492,8 +492,10 @@ $('#submitBounty').validate({
     }
   },
   submitHandler: function(form) {
+    const contact_version = '2';
+
     try {
-      bounty_address();
+      bounty_address(contact_version);
     } catch (exception) {
       _alert(gettext('You are on an unsupported network.  Please change your network to a supported network.'));
       unloading_button($('.js-submit'));
@@ -541,7 +543,7 @@ $('#submitBounty').validate({
     });
 
     var metadata = {
-      contact_version: '2',
+      contact_version: contact_version,
       issueTitle: data.title,
       issueDescription: data.description,
       issueKeywords: data.keywords ? data.keywords : '',
@@ -577,7 +579,7 @@ $('#submitBounty').validate({
     // https://github.com/ConsenSys/StandardBounties/issues/21
     var ipfsBounty = {
       payload: {
-        contract_version: metadata.contract_version,
+        contract_version: contract_version,
         title: metadata.issueTitle,
         description: metadata.issueDescription,
         sourceFileName: '',
@@ -623,9 +625,6 @@ $('#submitBounty').validate({
       }
     };
 
-    // validation
-    var isError = false;
-
     $(this).attr('disabled', 'disabled');
 
     // save off local state for later
@@ -648,7 +647,7 @@ $('#submitBounty').validate({
     // This function instantiates a contract from the existing deployed Standard Bounties Contract.
     // bounty_abi is a giant object containing the different network options
     // bounty_address() is a function that looks up the name of the network and returns the hash code
-    var bounty = web3.eth.contract(getBountyABI(metadata.contract_version)).at(bounty_address());
+    var bounty = web3.eth.contract(getBountyABI(contract_version)).at(bounty_address(contract_version));
     // StandardBounties integration begins here
     // Set up Interplanetary file storage
     // IpfsApi is defined in the ipfs-api.js.
